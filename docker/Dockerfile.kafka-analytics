@@ -1,0 +1,44 @@
+# Multi-stage build for Kafka Analytics Service
+FROM python:3.11-slim as ml-base
+
+# Install Java runtime and system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-21-jre-headless curl wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN addgroup --system --gid 1001 app \
+    && adduser --system --uid 1001 --ingroup app --home /home/appuser --shell /bin/bash appuser \
+    && mkdir -p /home/appuser /opt/app \
+    && chown -R appuser:app /home/appuser /opt/app
+
+WORKDIR /opt/app
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+
+# Install additional dependencies
+RUN pip install --no-cache-dir --prefer-binary \
+    confluent-kafka==2.12.0 \
+    psycopg2-binary==2.9.11
+
+# Copy application code
+COPY kafka/analytics_service.py ./analytics_service.py
+COPY utils/ ./utils/
+COPY config.yaml .
+
+# Switch to non-root user
+USER appuser
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV RUNNING_IN_DOCKER=true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)" || exit 1
+
+# Default command
+CMD ["python", "analytics_service.py"]

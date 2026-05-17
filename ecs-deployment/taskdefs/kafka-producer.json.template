@@ -1,0 +1,57 @@
+{
+  "family": "churn-pipeline-kafka-producer",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "${EXEC_ROLE_ARN}",
+  "taskRoleArn": "${TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "producer",
+      "image": "${ECR_KAFKA_PRODUCER}",
+      "essential": true,
+      "command": [
+        "python",
+        "producer_service.py",
+        "--mode",
+        "streaming",
+        "--rate",
+        "10",
+        "--duration",
+        "3600"
+      ],
+      "environment": [
+        {
+          "name": "KAFKA_BOOTSTRAP_SERVERS",
+          "value": "${KAFKA_BOOTSTRAP_SERVERS}"
+        },
+        {
+          "name": "KAFKA_TOPIC",
+          "value": "customer-events"
+        },
+        {
+          "name": "RUNNING_IN_DOCKER",
+          "value": "true"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "${AWS_REGION}"
+        },
+        {
+          "name": "S3_BUCKET",
+          "value": "${S3_BUCKET}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${LOG_GROUP}",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "kafka-producer"
+        }
+      }
+    }
+  ]
+}
+

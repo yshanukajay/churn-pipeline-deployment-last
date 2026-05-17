@@ -1,0 +1,88 @@
+{
+  "family": "churn-pipeline-kafka-inference",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "${EXEC_ROLE_ARN}",
+  "taskRoleArn": "${TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "inference",
+      "image": "${ECR_KAFKA_INFERENCE}",
+      "essential": true,
+      "command": [
+        "python",
+        "inference_service.py",
+        "--continuous",
+        "--poll-interval",
+        "5"
+      ],
+      "environment": [
+        {
+          "name": "KAFKA_BOOTSTRAP_SERVERS",
+          "value": "${KAFKA_BOOTSTRAP_SERVERS}"
+        },
+        {
+          "name": "BATCH_SIZE",
+          "value": "1000"
+        },
+        {
+          "name": "TIMEOUT_SECONDS",
+          "value": "30"
+        },
+        {
+          "name": "RUNNING_IN_DOCKER",
+          "value": "true"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "${AWS_REGION}"
+        },
+        {
+          "name": "S3_BUCKET",
+          "value": "${S3_BUCKET}"
+        },
+        {
+          "name": "MLFLOW_TRACKING_URI",
+          "value": "${MLFLOW_URL}"
+        },
+        {
+          "name": "RDS_HOST",
+          "value": "${RDS_HOST}"
+        },
+        {
+          "name": "RDS_PORT",
+          "value": "${RDS_PORT}"
+        },
+        {
+          "name": "RDS_DB_NAME",
+          "value": "${RDS_ANALYTICS_DB}"
+        },
+        {
+          "name": "RDS_USERNAME",
+          "value": "${RDS_USER}"
+        },
+        {
+          "name": "USE_SQLITE_FALLBACK",
+          "value": "false"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "RDS_PASSWORD",
+          "valueFrom": "${RDS_PASSWORD_SECRET_ARN}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${LOG_GROUP}",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "kafka-inference"
+        }
+      }
+    }
+  ]
+}
+

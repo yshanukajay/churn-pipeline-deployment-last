@@ -1,0 +1,9 @@
+# MLflow Tracking Server Requirements
+setuptools>=65.0.0
+wheel>=0.37.0
+mlflow==3.12.0          # ← matches what the other containers already have
+boto3==1.34.162
+botocore==1.34.162
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+alembic==1.13.1

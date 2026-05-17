@@ -1,0 +1,40 @@
+{
+  "family": "churn-pipeline-mlflow",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "${EXEC_ROLE_ARN}",
+  "taskRoleArn": "${TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "mlflow",
+      "image": "${ECR_MLFLOW}",
+      "essential": true,
+      "portMappings": [{"containerPort": 5001, "protocol": "tcp"}],
+      "environment": [
+        {"name": "AWS_REGION", "value": "${AWS_REGION}"},
+        {"name": "MLFLOW_BACKEND_STORE_URI", "value": "postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:${RDS_PORT}/${RDS_MLFLOW_DB}"},
+        {"name": "MLFLOW_DEFAULT_ARTIFACT_ROOT", "value": "s3://${S3_BUCKET}/mlflow-artifacts"}
+      ],
+      "secrets": [
+        {"name": "RDS_PASSWORD", "valueFrom": "${RDS_PASSWORD_SECRET_ARN}"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${LOG_GROUP}",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "mlflow-tracking"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      }
+    }
+  ]
+}

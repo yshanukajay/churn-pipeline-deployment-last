@@ -1,0 +1,43 @@
+{
+  "family": "churn-pipeline-airflow-worker",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "2048",
+  "memory": "4096",
+  "executionRoleArn": "${EXEC_ROLE_ARN}",
+  "taskRoleArn": "${TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "worker",
+      "image": "${ECR_AIRFLOW}",
+      "essential": true,
+      "command": ["bash", "-lc", "airflow celery worker"],
+      "environment": [
+        {"name": "AIRFLOW__CORE__EXECUTOR", "value": "CeleryExecutor"},
+        {"name": "AIRFLOW__CORE__LOAD_EXAMPLES", "value": "False"},
+        {"name": "AIRFLOW__CELERY__BROKER_URL", "value": "redis://${REDIS_ENDPOINT}"},
+        {"name": "AIRFLOW__DATABASE__SQL_ALCHEMY_CONN", "value": "postgresql+psycopg2://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:${RDS_PORT}/${RDS_DB}"},
+        {"name": "AIRFLOW__CELERY__RESULT_BACKEND", "value": "db+postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_HOST}:${RDS_PORT}/${RDS_DB}"},
+        {"name": "MLFLOW_TRACKING_URI", "value": "${MLFLOW_URL}"},
+        {"name": "AWS_REGION", "value": "${AWS_REGION}"},
+        {"name": "S3_BUCKET", "value": "${S3_BUCKET}"},
+        {"name": "AIRFLOW__LOGGING__REMOTE_LOGGING", "value": "True"},
+        {"name": "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER", "value": "s3://${S3_BUCKET}/airflow-logs"},
+        {"name": "AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID", "value": ""}
+      ],
+      "secrets": [
+        {"name": "AIRFLOW_DB_PASSWORD", "valueFrom": "${RDS_PASSWORD_SECRET_ARN}"},
+        {"name": "AIRFLOW__CORE__FERNET_KEY", "valueFrom": "${FERNET_KEY_SECRET_ARN}"},
+        {"name": "AIRFLOW__WEBSERVER__SECRET_KEY", "valueFrom": "${FERNET_KEY_SECRET_ARN}"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${LOG_GROUP}",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "airflow-worker"
+        }
+      }
+    }
+  ]
+}
