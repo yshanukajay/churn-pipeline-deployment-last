@@ -75,7 +75,7 @@ class DropMissingValuesStrategy(MissingValueHandlingStrategy):
         """
             # initial_count = len(df)
         
-            initial_count = df.count()
+        initial_count = df.count()
         
         if self.critical_columns:
             df_cleaned = df.dropna(subset=self.critical_columns)
