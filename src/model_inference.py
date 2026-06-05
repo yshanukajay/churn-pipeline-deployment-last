@@ -20,7 +20,7 @@ if PYSPARK_AVAILABLE:
     except ImportError:
         PYSPARK_AVAILABLE = False
         SparkSession = None
-        SparkDataFrame = None
+        SparkDataFrame = None   
         get_or_create_spark_session = None
         spark_to_pandas = None
 else:
@@ -154,10 +154,10 @@ class ModelInference:
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
-        from s3_io import read_pickle, key_exists
-        from s3_artifact_manager import S3ArtifactManager
-        from config import get_s3_bucket
-        from timestamp_resolver import get_latest_train_timestamp
+        from utils.s3_io import read_pickle, key_exists
+        from utils.s3_artifact_manager import S3ArtifactManager
+        from utils.config import get_s3_bucket
+        from utils.timestamp_resolver import get_latest_train_timestamp
         
         bucket = get_s3_bucket()
         
