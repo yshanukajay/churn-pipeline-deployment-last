@@ -4,11 +4,8 @@ numpy>=1.21.0
 scikit-learn>=1.1.0
 scipy>=1.9.0
 
-# PySpark and MLlib (DISABLED - using pandas for faster builds)
-# pyspark>=3.4.0
-# pyspark[sql]>=3.4.0
-# pyspark[ml]>=3.4.0
-# Note: Uncomment if you need distributed processing with --engine pyspark
+# PySpark and MLlib
+pyspark>=3.4.0
 
 # Model Libraries
 xgboost>=2.1.0

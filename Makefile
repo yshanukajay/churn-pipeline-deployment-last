@@ -521,17 +521,17 @@ RDS_DB ?= airflow
 RDS_MLFLOW_DB ?= mlflow
 PSQL_CLIENT_IMAGE ?= postgres:15
 
-PSQL_BIN := $(shell command -v psql 2>/dev/null)
-DOCKER_BIN := $(shell command -v docker 2>/dev/null)
+PSQL_BIN := $(shell command -v psql 2>/dev/null | tr -d '\r')
+DOCKER_BIN := $(shell command -v docker 2>/dev/null | tr -d '\r')
 
 ifeq ($(PSQL_BIN),)
 	ifeq ($(DOCKER_BIN),)
 		PSQL_CLIENT_CMD = sh -c 'echo "❌ psql not found and Docker is unavailable. Install postgresql-client or Docker."; exit 127'
 	else
-		PSQL_CLIENT_CMD = docker run --rm -e PGPASSWORD=$(RDS_PASSWORD) $(PSQL_CLIENT_IMAGE) psql
+		PSQL_CLIENT_CMD = docker run --rm -e PGPASSWORD="$(RDS_PASSWORD)" $(PSQL_CLIENT_IMAGE) psql
 	endif
 else
-	PSQL_CLIENT_CMD = PGPASSWORD=$(RDS_PASSWORD) $(PSQL_BIN)
+	PSQL_CLIENT_CMD = env PGPASSWORD="$(RDS_PASSWORD)" "$(PSQL_BIN)"
 endif
 
 # Show all RDS databases overview

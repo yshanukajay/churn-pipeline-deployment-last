@@ -61,15 +61,15 @@
         },
         {
           "name": "AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER",
-          "value": "s3://${S3_BUCKET}/airflow-logs"
+          "value": "s3://churn-artifacts-stuffs-bucket/airflow-logs"
         },
         {
           "name": "AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID",
-          "value": ""
+          "value": "aws_default"
         },
         {
           "name": "AIRFLOW__WEBSERVER__BASE_URL",
-          "value": "http://${ALB_DNS}"
+          "value": "http://churn-pipeline-alb-943118470.us-east-1.elb.amazonaws.com"
         },
         {
           "name": "AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX",

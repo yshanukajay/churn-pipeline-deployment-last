@@ -73,19 +73,21 @@ register_task() {
     
     echo "Processing: $template"
     
-    # Replace environment variables in template
-    local processed="/tmp/${family}.json"
+    # Use local dir instead of /tmp/ (fixes Git Bash path mangling)
+    local processed="$(dirname "$0")/.tmp/${family}.json"
+    mkdir -p "$(dirname "$0")/.tmp"
     envsubst < "$template" > "$processed"
     
-    # Validate JSON
-    if ! jq empty "$processed" 2>/dev/null; then
+    # Validate JSON using python instead of jq
+    if ! python -m json.tool "$processed" > /dev/null 2>&1; then
         echo -e "${RED}❌ Invalid JSON in $template${NC}"
+        cat "$processed"
         return 1
     fi
     
     # Register task definition
     TASK_ARN=$(aws ecs register-task-definition \
-        --cli-input-json file://"$processed" \
+        --cli-input-json "file://${processed}" \
         --region "$AWS_REGION" \
         --query 'taskDefinition.taskDefinitionArn' \
         --output text)
@@ -94,7 +96,6 @@ register_task() {
     echo "   ARN: $TASK_ARN"
     echo ""
     
-    # Export ARN
     export "TASK_${family//-/_}_ARN=$TASK_ARN"
     
     rm -f "$processed"

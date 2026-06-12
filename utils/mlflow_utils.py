@@ -2,6 +2,7 @@ import os
 import logging
 import mlflow
 import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 from typing import Dict, Any, Optional, Union
 from datetime import datetime
 import pandas as pd
@@ -16,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 class MLflowTracker:
     """MLflow tracking utilities for experiment management and model versioning"""
+
+    S3_EXPERIMENT_SUFFIX = "-s3"
     
     def __init__(self):
         self.config = get_mlflow_config()
@@ -66,24 +69,49 @@ class MLflowTracker:
         experiment_name = self.config.get('experiment_name', 'churn_prediction_experiment')
         
         try:
-            experiment = mlflow.get_experiment_by_name(experiment_name)
+            client = MlflowClient()
+            experiment = client.get_experiment_by_name(experiment_name)
+
+            if artifact_root:
+                os.environ['MLFLOW_DEFAULT_ARTIFACT_ROOT'] = artifact_root
+                logger.info(f"MLflow artifact root set to: {artifact_root}")
+
             if experiment is None:
-                # Create experiment with S3 artifact location if configured
+                experiment_id = mlflow.create_experiment(
+                    name=experiment_name,
+                    artifact_location=artifact_root if artifact_root else None
+                )
+                logger.info(f"Created new MLflow experiment: {experiment_name} (ID: {experiment_id})")
                 if artifact_root:
-                    experiment_id = mlflow.create_experiment(
-                        name=experiment_name,
-                        artifact_location=artifact_root
-                    )
-                    logger.info(f"Created new MLflow experiment with S3 backend: {experiment_name} (ID: {experiment_id})")
                     logger.info(f"Artifact location: {artifact_root}")
-                else:
-                    experiment_id = mlflow.create_experiment(experiment_name)
-                    logger.info(f"Created new MLflow experiment: {experiment_name} (ID: {experiment_id})")
             else:
-                experiment_id = experiment.experiment_id
-                logger.info(f"Using existing MLflow experiment: {experiment_name} (ID: {experiment_id})")
-                
+                if artifact_root and not str(experiment.artifact_location or "").startswith("s3://"):
+                    s3_experiment_name = f"{experiment_name}{self.S3_EXPERIMENT_SUFFIX}"
+                    s3_experiment = client.get_experiment_by_name(s3_experiment_name)
+
+                    if s3_experiment is None:
+                        experiment_id = mlflow.create_experiment(
+                            name=s3_experiment_name,
+                            artifact_location=artifact_root
+                        )
+                        logger.info(
+                            f"Existing experiment {experiment_name} points to {experiment.artifact_location}; "
+                            f"created S3-backed experiment {s3_experiment_name} (ID: {experiment_id})"
+                        )
+                    else:
+                        experiment_id = s3_experiment.experiment_id
+                        logger.info(
+                            f"Using existing S3-backed experiment: {s3_experiment_name} (ID: {experiment_id})"
+                        )
+                    experiment_name = s3_experiment_name
+                else:
+                    experiment_id = experiment.experiment_id
+                    logger.info(f"Using existing MLflow experiment: {experiment_name} (ID: {experiment_id})")
+
             mlflow.set_experiment(experiment_name)
+
+            active_experiment = mlflow.get_experiment_by_name(experiment_name)
+            logger.info(f"Active MLflow experiment artifact location: {active_experiment.artifact_location}")
             
         except Exception as e:
             logger.error(f"Error setting up MLflow experiment: {e}")
